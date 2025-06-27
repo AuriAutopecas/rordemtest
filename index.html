@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ordem de Serviço - Carmotors</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; 
+            padding-top: 2rem;
+            display: flex; 
+            justify-content: center;
+            align-items: flex-start; 
+            min-height: 100vh;
+        }
+
+        /* Estilo para remover as setas dos inputs de número */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        /* Estilo do Spinner (rodinha) */
+        .spinner {
+            border: 6px solid rgba(255, 255, 255, 0.3);
+            border-top: 6px solid #4CAF50; 
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Estilo do Pop-up (Modal) */
+        .modal {
+            transition: opacity 0.3s ease-in-out;
+            z-index: 1000;
+        }
+        .modal-content {
+            transform: translateY(-20px);
+            transition: transform 0.3s ease-out;
+        }
+        .modal.show .modal-content {
+            transform: translateY(0);
+        }
+
+        /* Estilo da Sobreposição do Spinner */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .loading-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* General input styling for consistency */
+        .form-input {
+            appearance: none;
+            display: block;
+            width: 100%;
+            background-color: #f9fafb; 
+            color: #374151; 
+            border: 1px solid #d1d5db; 
+            border-radius: 0.375rem; 
+            padding: 0.375rem 0.5rem; 
+            line-height: 1.25; 
+            transition: all 0.2s ease-in-out;
+        }
+        .form-input:focus {
+            outline: none;
+            background-color: #ffffff;
+            border-color: #3b82f6; 
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25); 
+        }
+        .form-input.uppercase {
+            text-transform: uppercase;
+        }
+        .form-input.readonly {
+            background-color: #e5e7eb; 
+            cursor: default;
+        }
+        .form-input.highlighted {
+             background-color: #bfdbfe; 
+             color: #1e40af; 
+             border-color: #93c5fd; 
+             font-weight: bold;
+        }
+        /* Specific styling for fieldset legends */
+        fieldset {
+            border: none;
+            border-top: 1px solid #e5e7eb; 
+            padding-top: 1rem;
+            margin-top: 1rem;
+        }
+        legend {
+            font-size: 1.125rem; 
+            font-weight: 600; 
+            color: #1f2937; 
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+            margin-left: -0.5rem; 
+        }
+        /* Error message styling */
+        .error-message {
+            color: #dc2626; 
+            font-size: 0.75rem; 
+            margin-top: 0.25rem;
+            display: none; 
+        }
+        .error-message.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center">
+
+    <div class="w-full max-w-4xl bg-white p-4 rounded-xl shadow-lg mt-4">
+        <div class="flex items-center mb-4">
+            <img src="logo.png" alt="Logo da Carmotors" class="w-[120px] h-auto mr-4 rounded-lg shadow-sm">
+            <div class="flex-grow text-center ml-[-120px]">
+                <h1 class="text-3xl font-bold text-gray-800">DR -AUTO MECÂNICA</h1>
+                <p class="text-sm text-gray-600 mt-1">Serviços especializado em mecânica em geral</p>
+                <p class="text-sm text-gray-600">Carinho, cuidado e o melhor tratamento para o seu carro.</p>
+            </div>
+        </div>
+
+        <form id="serviceOrderForm" class="space-y-4">
+            <!-- Data e Ordem N° -->
+            <div class="flex flex-wrap -mx-3 mb-2">
+                <div class="w-full md:w-1/2 px-3 mb-2 md:mb-0">
+                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-0.5" for="data">
+                        Data <span class="text-red-500">*</span>
+                    </label>
+                    <input class="form-input" id="data" name="Datahora" type="date" required readonly>
+                </div>
+                <div class="w-full md:w-1/2 px-3">
+                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-0.5" for="ordem-n">
+                        Ordem N°
+                    </label>
+                    <input class="form-input readonly" id="ordem-n" name="Ordem" type="text" placeholder="Carregando..." readonly>
+                </div>
+            </div>
+
+            <!-- Informações do Cliente -->
+            <fieldset>
+                <legend>INFORMAÇÕES DO CLIENTE</legend>
+                <div class="flex flex-wrap -mx-3 mt-2">
+                    <div class="w-full md:w-1/2 px-3 mb-2 md:mb-0">
+                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-0.5" for="nome-cliente">
+                            Nome <span class="text-red-500">*</span>
+                        </label>
+                        <input class="form-input uppercase" id="nome-cliente" name="Nome" type="text" placeholder="Nome completo do cliente" required>
+                        <span id="nome-cliente-error" class="error-message"></span>
+                    </div>
+                    <div class="w-full md:w-1/4 px-3 mb-2 md:mb-0">
+                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-0.5" for="cpf-cliente">
+                            CPF
+                        </label>
+                        <input class="form-input uppercase" id="cpf-cliente" name="Cpf" type="text" placeholder="000.000.000-00" maxlength="14">
+                        <span id="cpf-cliente-error" class="error-message"></span>
+                    </div>
+                    <div class="w-full md:w-1/4 px-3">
+                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-0.5" for="telefone-cliente">
+                            Telemóvel
+                        </label>
+                        <input class="form-input uppercase" id="telefone-cliente" name="Telefone" type="text" placeholder="(00) 00000-0000" maxlength="15">
+                        <span id="telefone-cliente-error" class="error-message"></span>
+                    </div>
+                    <div class="w-full md:w-full px-3 mt-2">
+                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-0.5" for="endereco-cliente">
+                            Endereço
+                        </label>
+                        <input class="form-input uppercase" id="endereco-cliente" name="Endereco" type="text" placeholder="Rua, Número, Bairro, Cidade">
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Informações do Veículo -->
+            <fieldset>
+                <legend>INFORMAÇÕES DO VEÍCULO</legend>
+                <div class="flex flex-wrap -mx-3 mt-2">
+                    <div class="w-full md:w-1/2 px-3 mb-2">
+                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-0.5" for="veiculo">
+                            Veículo
+                        </label>
+                        <input class="form-input uppercase" id="veiculo" name="Veiculo" type="text" placeholder="Ex: Toyota Corolla">
+                    </div>
+                    <div class="w-full md:w-1/2 px-3 mb-2">
+                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-0.5" for="propriedade">
+                            Propriedade
+                        </label>
+                        <input class="form-input uppercase" id="propriedade" name="Propriedade" type="text" placeholder="Ex: Particular">
+                    </div>
+                    <div class="w-full md:w-1/3 px-3 mb-2 md:mb-0">
+                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-0.5" for="modelo">
+                            Modelo
+                        </label>
+                        <input class="form-input uppercase" id="modelo" name="Modelo" type="text" placeholder="Ex: XEi 2.0">
+                    </div>
+                    <div class="w-full md:w-1/3 px-3 mb-2 md:mb-0">
+                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-0.5" for="cor">
+                            Cor
+                        </label>
+                        <input class="form-input uppercase" id="cor" name="Cor" type="text" placeholder="Ex: Prata">
+                    </div>
+                    <div class="w-full md:w-1/3 px-3">
+                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-0.5" for="matricula">
+                            Matrícula
+                        </label>
+                        <input class="form-input uppercase" id="matricula" name="Matricula" type="text" placeholder="Ex: ABC-1234">
+                        <span id="matricula-error" class="error-message"></span>
+                    </div>
+                </div>
+                <div class="w-full px-3 mt-3">
+                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-0.5" for="servico-realizado">
+                        Serviço realizado <span class="text-red-500">*</span>
+                    </label>
+                    <textarea class="form-input uppercase" id="servico-realizado" name="Servico" rows="2" placeholder="Descreva o serviço realizado" required></textarea>
+                    <span id="servico-realizado-error" class="error-message"></span>
+                </div>
+            </fieldset>
+
+            <!-- Peças Utilizadas -->
+            <fieldset>
+                <legend>PEÇAS UTILIZADAS</legend>
+                <div id="pecas-container" class="mt-2 space-y-1">
+                    <div class="grid grid-cols-12 gap-4 px-2">
+                        <div class="col-span-2">
+                               <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold">Qtd.</label>
+                        </div>
+                        <div class="col-span-7">
+                            <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold">Nome da peça</label>
+                        </div>
+                        <div class="col-span-3 text-right">
+                            <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold">Valor (€)</label>
+                        </div>
+                    </div>
+                    <!-- As linhas de peças serão inseridas aqui pelo JavaScript -->
+                </div>
+            </fieldset>
+
+            <!-- Totais -->
+            <div class="flex flex-wrap justify-end -mx-3 my-3 pt-3 border-t border-gray-200 items-end">
+                <div class="w-full md:w-1/4 px-3 mb-2 md:mb-0">
+                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-0.5" for="valor-mao-de-obra">
+                        Valor mão de obra (€)
+                    </label>
+                    <input class="form-input text-right" id="valor-mao-de-obra" name="Maodeobra" type="number" placeholder="0.00" min="0" step="0.01" value="0.00">
+                </div>
+                <div class="w-full md:w-1/4 px-3 mb-2 md:mb-0">
+                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-0.5" for="total-pecas">
+                        Total peças (€)
+                    </label>
+                    <input class="form-input readonly text-right" id="total-pecas" name="Valortotalpeca" type="text" placeholder="0,00 €" readonly>
+                </div>
+                <div class="w-full md:w-1/4 px-3 mb-2 md:mb-0">
+                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-0.5" for="iva">
+                        IVA %
+                    </label>
+                    <input class="form-input text-right" id="iva" name="Ivapercentual" type="number" placeholder="0" min="0" value="17" step="0.01">
+                </div>
+                <div class="w-full md:w-1/4 px-3">
+                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-0.5" for="total-geral">
+                        Total geral (€)
+                    </label>
+                    <input class="form-input highlighted text-right" id="total-geral" name="Totalgeral" type="text" placeholder="0,00 €" readonly>
+                </div>
+            </div>
+
+            <div class="flex justify-center mt-4">
+                <button type="submit" id="submitButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-1.5 px-6 rounded-lg shadow-md transition duration-230 ease-in-out transform hover:scale-105">
+                    REGISTRAR ORDEM DE SERVIÇO
+                </button>
+
+ <a href="https://auriautopecas.github.io/osrelatorio/" target="_blank"
+   class="bg-green-600 text-white font-bold  px-4 py-2 rounded hover:bg-green-700 transition ml-6">
+   RELATÓRIO
+</a>
+
+            </div>
+        </form>
+
+        <div id="feedback-message" class="mt-2 text-center text-lg hidden"></div>
+    </div>
+
+    <!-- Loading Overlay and Spinner -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Universal Modal for Success/Error/Validation -->
+    <div id="myModal" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden opacity-0">
+        <div class="modal-content bg-white p-5 rounded-lg shadow-xl max-w-sm w-full text-center">
+            <h2 id="modalTitle" class="text-lg font-bold mb-2"></h2>
+            <p id="modalMessage" class="text-gray-700 mb-3"></p>
+            <button id="closeModalButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded-lg">Fechar</button>
+        </div>
+    </div>
+
+    <script>
+        // ****************************************************************************************************
+        // *** ATENÇÃO: É ABSOLUTAMENTE ESSENCIAL SUBSTITUIR ESTE URL PELO URL DA SUA IMPLANTAÇÃO DO APPS SCRIPT ***
+        // *** SE NÃO FIZER ISSO, O FORMULÁRIO NÃO IRÁ FUNCIONAR E TERÁ ERROS DE CONEXÃO.                   ***
+        // ****************************************************************************************************
+        // Para obter o URL da sua Aplicação Web no Google Apps Script:
+        // 1. Abra o seu projeto do Apps Script.
+        // 2. No menu superior, clique em "Implementar" (Deploy) > "Nova implantação" (New deployment).
+        //    (Se já tiver uma implantação, clique em "Gerir implantações" (Manage deployments) e procure a do tipo "Aplicação web").
+        // 3. Escolha o tipo de implantação "Aplicação web" (Web app).
+        // 4. Configure as permissões:
+        //    - Executar como: "Utilizador que acede à aplicação web" (User accessing the web app) ou "Eu" (Me) - "Eu" é mais simples para testes.
+        //    - Aceder à aplicação: "Qualquer pessoa" (Anyone) ou "Qualquer pessoa, incluindo anónimos" (Anyone, even anonymous) - "Qualquer pessoa" é geralmente preferível.
+        // 5. Clique em "Implementar" (Deploy).
+        // 6. Depois de implementado, será apresentado o "URL da aplicação web" (Web app URL). COPIE ESSE URL.
+        // 7. COLE ESSE URL EXATAMENTE AQUI, SUBSTITUINDO O TEXTO ABAIXO.
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxkBN2qYiAq3Nn857Hex5EXWp5_P7Hxu7n3SOR5nMljvbG3h5jO_y06YPnUdrBVHeHUXw/exec'; // <--- VOCÊ PRECISA SUBSTITUIR ESTE TEXTO PELO SEU URL REAL!
+
+        // Referências aos elementos do DOM
+        const form = document.getElementById('serviceOrderForm');
+        const dataInput = document.getElementById('data');
+        const ordemNInput = document.getElementById('ordem-n');
+        const nomeClienteInput = document.getElementById('nome-cliente');
+        const cpfClienteInput = document.getElementById('cpf-cliente');
+        const telefoneClienteInput = document.getElementById('telefone-cliente');
+        const matriculaInput = document.getElementById('matricula');
+        const servicoRealizadoInput = document.getElementById('servico-realizado');
+
+        const pecasContainer = document.getElementById('pecas-container');
+        const valorMaoDeObraInput = document.getElementById('valor-mao-de-obra');
+        const totalPecasInput = document.getElementById('total-pecas');
+        const ivaInput = document.getElementById('iva');
+        const totalGeralInput = document.getElementById('total-geral');
+
+        const submitButton = document.getElementById('submitButton');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const myModal = document.getElementById('myModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const closeModalButton = document.getElementById('closeModalButton');
+
+        const numeroDeLinhasDePecas = 10; // Número fixo de linhas de peças
+
+        // --- Funções de Utilidade ---
+
+        /**
+         * Formata um valor numérico para o formato de moeda Euro (€).
+         * @param {number} value - O valor numérico a ser formatado.
+         * @returns {string} O valor formatado como moeda.
+         */
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(value);
+        }
+
+        /**
+         * Converte uma string (ou número) para um número de ponto flutuante, tratando vírgulas como decimais.
+         * Retorna 0 se a conversão não for possível.
+         * @param {string|number} valor - O valor a ser convertido.
+         * @returns {number} O valor numérico.
+         */
+        function parseNumber(valor) {
+            if (typeof valor === 'number') return valor;
+            if (!valor) return 0;
+            // Remove separador de milhar (ponto), troca vírgula por ponto decimal
+            valor = String(valor).replace(/\./g, '').replace(',', '.'); 
+            const n = parseFloat(valor);
+            return isNaN(n) ? 0 : n;
+        }
+
+        // --- Funções para controlar o spinner e o modal ---
+        function showLoading() {
+            submitButton.disabled = true;
+            loadingOverlay.classList.remove('hidden');
+            setTimeout(() => loadingOverlay.classList.add('show'), 10);
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.remove('show');
+            setTimeout(() => {
+                submitButton.disabled = false;
+                loadingOverlay.classList.add('hidden');
+            }, 300);
+        }
+
+        function showModal(title, message, isSuccess) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modalTitle.classList.remove('text-red-700', 'text-green-700'); 
+            closeModalButton.classList.remove('bg-red-600', 'hover:bg-red-700', 'bg-blue-600', 'hover:bg-blue-700'); 
+
+            if (isSuccess) {
+                modalTitle.classList.add('text-green-700');
+                closeModalButton.classList.add('bg-blue-600', 'hover:bg-blue-700'); 
+            } else {
+                modalTitle.classList.add('text-red-700');
+                closeModalButton.classList.add('bg-red-600', 'hover:bg-red-700'); 
+            }
+            myModal.classList.remove('hidden');
+            setTimeout(() => myModal.classList.add('opacity-100', 'show'), 10);
+        }
+
+        function hideModal() {
+            myModal.classList.remove('opacity-100', 'show');
+            setTimeout(() => myModal.classList.add('hidden'), 300);
+        }
+        closeModalButton.addEventListener('click', hideModal);
+        myModal.addEventListener('click', function(event) {
+            if (event.target === myModal) {
+                hideModal();
+            }
+        });
+
+        /**
+         * Oculta uma mensagem de erro específica.
+         * @param {HTMLElement} errorElement - O elemento span da mensagem de erro.
+         */
+        function hideErrorMessage(errorElement) {
+            if (errorElement) {
+                errorElement.classList.remove('active');
+                errorElement.textContent = '';
+            }
+        }
+
+        /**
+         * Exibe uma mensagem de erro específica.
+         * @param {HTMLElement} errorElement - O elemento span da mensagem de erro.
+         * @param {string} message - A mensagem de erro a ser exibida.
+         */
+        function showErrorMessage(errorElement, message) {
+            if (errorElement) {
+                errorElement.textContent = message;
+                errorElement.classList.add('active');
+            }
+        }
+
+        // --- Funções de Máscaras de Input (re-implementadas para robustez) ---
+
+        /**
+         * Aplica máscara de CPF ao input (apenas números).
+         * @param {HTMLElement} input - O elemento input do CPF.
+         */
+        function applyCpfMask(input) {
+            input.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, ''); 
+                if (value.length > 11) value = value.slice(0, 11);
+                if (value.length > 9) {
+                    value = value.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+                } else if (value.length > 6) {
+                    value = value.replace(/^(\d{3})(\d{3})(\d{3})$/, '$1.$2.$3');
+                } else if (value.length > 3) {
+                    value = value.replace(/^(\d{3})(\d{3})$/, '$1.$2');
+                } else if (value.length > 0) {
+                    value = value.replace(/^(\d{3})$/, '$1');
+                }
+                e.target.value = value;
+            });
+        }
+
+        /**
+         * Aplica máscara de telefone ao input.
+         * @param {HTMLElement} input - O elemento input do telefone.
+         */
+        function applyPhoneMask(input) {
+            input.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, ''); 
+                if (value.length > 11) value = value.slice(0, 11);
+                if (value.length > 10) {
+                    value = value.replace(/^(\d\d)(\d{5})(\d{4}).*/, '($1) $2-$3');
+                } else if (value.length > 6) {
+                    value = value.replace(/^(\d\d)(\d{4})(\d{0,4}).*/, '($1) $2-$3');
+                } else if (value.length > 2) {
+                    value = value.replace(/^(\d\d)(\d{0,5}).*/, '($1) $2');
+                } else if (value.length > 0) {
+                    value = value.replace(/^(\d*)/, '($1');
+                }
+                e.target.value = value;
+            });
+        }
+
+        /**
+         * Aplica máscara de placa (matrícula) ao input.
+         * @param {HTMLElement} input - O elemento input da matrícula.
+         */
+        function applyPlateMask(input) {
+            input.addEventListener('input', function(e) {
+                let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); 
+                if (value.length > 7) value = value.slice(0, 7);
+
+                const mercosulPattern = /^([A-Z]{3})(\d)([A-Z])(\d{2})$/;
+                const oldPlatePattern = /^([A-Z]{3})(\d{4})$/;
+
+
+                if (value.length >= 7 && mercosulPattern.test(value)) {
+                    e.target.value = value;
+                } else if (value.length >= 7 && oldPlatePattern.test(value)) {
+                    e.target.value = value.replace(oldPlatePattern, '$1-$2');
+                } else {
+                    e.target.value = value;
+                }
+            });
+        }
+
+
+        // --- Função para criar uma linha de peça com inputs de quantidade, nome e valor ---
+        function criarLinhaPeca(index) {
+            const row = document.createElement('div');
+            row.className = 'grid grid-cols-12 gap-4 px-2 py-0.5 rounded-lg hover:bg-gray-50 peca-row';
+            row.innerHTML = `
+                <div class="col-span-2">
+                    <input class="form-input text-center quantidade"
+                        type="number" placeholder="0" min="0" step="1" name="Quantpeca${index === 0 ? '' : index}" value="0">
+                </div>
+                <div class="col-span-7">
+                    <input class="form-input uppercase nome-peca"
+                        type="text" placeholder="Nome da Peça" name="Nomepeca${index === 0 ? '' : index}" value="">
+                </div>
+                <div class="col-span-3">
+                    <input class="form-input text-right valor-unitario"
+                        type="number" placeholder="0.00" min="0" step="0.01" name="Valorpeca${index === 0 ? '' : index}" value="0.00">
+                </div>
+            `;
+            // Adiciona listeners aos novos inputs
+            row.querySelector('.quantidade').addEventListener('input', calcularTotais);
+            row.querySelector('.quantidade').addEventListener('blur', (e) => e.target.value = parseNumber(e.target.value).toFixed(0)); 
+
+            row.querySelector('.valor-unitario').addEventListener('input', calcularTotais);
+            row.querySelector('.valor-unitario').addEventListener('blur', (e) => e.target.value = parseNumber(e.target.value).toFixed(2));
+            return row;
+        }
+
+        // --- Função para calcular totais (Peças, IVA, Mão de Obra, Total Geral) ---
+        function calcularTotais() {
+            console.log("--- Iniciando cálculo de Totais no Frontend ---");
+            let totalPecas = 0;
+            const pecasRows = pecasContainer.querySelectorAll('.peca-row');
+
+            pecasRows.forEach(row => {
+                const quantidade = parseNumber(row.querySelector('.quantidade').value);
+                const valorUnitario = parseNumber(row.querySelector('.valor-unitario').value);
+                const subtotalPeca = quantidade * valorUnitario;
+                totalPecas += subtotalPeca;
+                console.log(`DEBUG (Frontend): Peça - Qtd: ${quantidade}, Valor Unit: ${valorUnitario.toFixed(2)}, Subtotal Peça: ${subtotalPeca.toFixed(2)}`);
+            });
+
+            console.log(`DEBUG (Frontend): Total Peças (acumulado): ${totalPecas.toFixed(2)}`);
+
+            const maoDeObra = parseNumber(valorMaoDeObraInput.value);
+            console.log(`DEBUG (Frontend): Mão de Obra (parsed): ${maoDeObra.toFixed(2)}`);
+
+            const ivaPercent = parseNumber(ivaInput.value);
+            console.log(`DEBUG (Frontend): IVA Percentual (parsed): ${ivaPercent.toFixed(2)}`);
+
+            // NOVA LÓGICA DE CÁLCULO DO TOTAL GERAL CONFORME SOLICITADO: IVA APENAS SOBRE PEÇAS
+            const valorIva = totalPecas * (ivaPercent / 100);
+            console.log(`DEBUG (Frontend): Valor IVA calculado (apenas sobre peças): ${valorIva.toFixed(2)}`);
+
+            const totalGeral = totalPecas + valorIva + maoDeObra;
+            console.log(`DEBUG (Frontend): Total Geral calculado: ${totalGeral.toFixed(2)}`);
+
+            totalPecasInput.value = formatCurrency(totalPecas);
+            totalGeralInput.value = formatCurrency(totalGeral);
+            console.log(`DEBUG (Frontend): Total Peças (formatado): ${totalPecasInput.value}`);
+            console.log(`DEBUG (Frontend): Total Geral (formatado): ${totalGeralInput.value}`);
+            console.log("--- Fim do cálculo de Totais no Frontend ---");
+        }
+
+        // --- Validação do Formulário ---
+        function validateForm() {
+            let isValid = true;
+            let messages = [];
+
+            document.querySelectorAll('.error-message').forEach(el => hideErrorMessage(el));
+
+            if (nomeClienteInput.value.trim() === '') {
+                showErrorMessage(document.getElementById('nome-cliente-error'), 'O nome do cliente é obrigatório.');
+                isValid = false;
+            }
+
+            const cpf = cpfClienteInput.value.replace(/\D/g, '');
+            if (cpf.length > 0 && cpf.length !== 11) {
+                showErrorMessage(document.getElementById('cpf-cliente-error'), 'CPF inválido. Deve conter 11 números.');
+                isValid = false;
+            }
+
+            const telefone = telefoneClienteInput.value.replace(/\D/g, '');
+            if (telefone.length > 0 && telefone.length < 8) {
+                showErrorMessage(document.getElementById('telefone-cliente-error'), 'Telefone inválido. Mínimo de 8 números.');
+                isValid = false;
+            }
+
+            if (servicoRealizadoInput.value.trim() === '') {
+                showErrorMessage(document.getElementById('servico-realizado-error'), 'A descrição do serviço é obrigatória.');
+                isValid = false;
+            }
+
+            const currentTotalGeral = parseNumber(totalGeralInput.value.replace(/[^0-9,-]+/g, "").replace(",", "."));
+            if (currentTotalGeral <= 0) {
+                messages.push('O "Total Geral" da ordem de serviço deve ser maior que zero (verifique peças e mão de obra).');
+                isValid = false;
+            }
+
+            if (!isValid) {
+                showModal('Erro de Validação', messages.join('<br>') || 'Por favor, corrija os erros destacados no formulário.', false);
+            }
+            return isValid;
+        }
+
+        // --- Fetch Next Order Number from Apps Script ---
+        async function fetchNextOrderNumber() {
+            ordemNInput.value = 'Carregando...'; 
+            try {
+                // Certifique-se de que o URL inclui o parâmetro de ação correto
+                console.log('DEBUG (HTML): Tentando buscar próxima ordem de:', `${WEB_APP_URL}?action=getNextOrderNumber`);
+                const response = await fetch(`${WEB_APP_URL}?action=getNextOrderNumber`);
+                
+                if (!response.ok) {
+                    const errorDetails = await response.text();
+                    console.error(`DEBUG (HTML): Erro HTTP ao buscar próxima ordem: Status ${response.status} - ${response.statusText}. Detalhes:`, errorDetails);
+                    ordemNInput.value = 'ERRO!';
+                    return; 
+                }
+                
+                const result = await response.json();
+                console.log('DEBUG (HTML): Resposta Apps Script para próxima ordem:', result);
+
+                if (result.nextOrder) {
+                    ordemNInput.value = String(result.nextOrder).padStart(6, '0');
+                } else if (result.error) {
+                    ordemNInput.value = 'ERRO!';
+                    console.error('Erro ao buscar número da ordem:', result.message);
+                    showModal('Erro de Carga', `Não foi possível carregar o número da OS: ${result.message}`, false);
+                } else {
+                    ordemNInput.value = 'ERRO!';
+                    console.error('Resposta Apps Script inesperada para próxima ordem:', result);
+                    showModal('Erro de Carga', 'Resposta inesperada ao carregar o número da OS.', false);
+                }
+            } catch (error) {
+                ordemNInput.value = 'ERRO!';
+                console.error('Erro de conexão ao buscar número da ordem:', error);
+                showModal('Erro de Conexão', `Não foi possível conectar ao servidor para carregar o número da OS. Detalhes: ${error.message}`, false);
+            }
+        }
+
+        // --- Event Listeners and Initial Setup ---
+        document.addEventListener('DOMContentLoaded', function () {
+            // Verifica se o URL da aplicação web foi configurado
+            if (WEB_APP_URL === 'COLOQUE_AQUI_O_SEU_URL_DO_APPS_SCRIPT') {
+                showModal('Erro de Configuração!', 
+                           'O URL do Google Apps Script não foi configurado. Por favor, edite o arquivo HTML e substitua "COLOQUE_AQUI_O_SEU_URL_DO_APPS_SCRIPT" pelo URL real da sua aplicação web do Apps Script.', 
+                           false);
+                ordemNInput.value = 'ERRO: URL!';
+                // Impede que o restante do script tente fazer requisições inválidas
+                return; 
+            }
+
+            dataInput.value = new Date().toISOString().split('T')[0];
+
+            for (let i = 0; i < numeroDeLinhasDePecas; i++) {
+                pecasContainer.appendChild(criarLinhaPeca(i));
+            }
+
+            applyCpfMask(cpfClienteInput);
+            applyPhoneMask(telefoneClienteInput);
+            applyPlateMask(matriculaInput);
+
+            valorMaoDeObraInput.addEventListener('input', calcularTotais);
+            ivaInput.addEventListener('input', calcularTotais);
+            
+            valorMaoDeObraInput.addEventListener('blur', (e) => e.target.value = parseNumber(e.target.value).toFixed(2));
+            ivaInput.addEventListener('blur', (e) => e.target.value = parseNumber(e.target.value).toFixed(2));
+
+
+            calcularTotais();
+            fetchNextOrderNumber();
+
+            form.addEventListener('submit', async function(event) {
+                event.preventDefault();
+
+                if (!validateForm()) {
+                    return; 
+                }
+
+                showLoading();
+
+                const formData = {};
+                Array.from(form.elements).forEach(element => {
+                    if (element.name) { 
+                        let value = element.value;
+                        if (element.type === 'number') {
+                            formData[element.name] = parseNumber(value);
+                        } else if (element.type === 'date') {
+                             formData[element.name] = value; 
+                        }
+                        else if (element.type === 'text' || element.tagName === 'TEXTAREA') {
+                            formData[element.name] = value.trim();
+                        }
+                    }
+                });
+                
+                // O número da ordem de serviço é gerado no backend, mas o campo do frontend pode ser enviado
+                // para que o backend possa fazer verificações adicionais ou apenas ignorar se preferir gerar lá.
+                // Decidimos gerar no backend para maior robustez e garantir unicidade.
+                // Mas, o formData.Ordem que será salvo é o gerado no backend.
+                // O que enviamos aqui é apenas o que está sendo exibido no momento.
+                formData.Ordem = ordemNInput.value; 
+
+
+                console.log('DEBUG (HTML): Dados a serem enviados:', formData);
+
+                try {
+                    const response = await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'text/plain;charset=utf-8', 
+                        },
+                        body: JSON.stringify(formData),
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}. Resposta: ${errorText}`);
+                    }
+
+                    const result = await response.json();
+                    console.log('DEBUG (HTML): Resposta Apps Script após POST:', result);
+
+                    if (result.status === 'sucesso') {
+                        showModal('Sucesso!', `Ordem de serviço #${result.ordem} registrada com sucesso.`, true);
+                        form.reset(); 
+                        pecasContainer.innerHTML = ''; 
+                        for (let i = 0; i < numeroDeLinhasDePecas; i++) { pecasContainer.appendChild(criarLinhaPeca(i)); } // Recreate piece rows
+                        dataInput.value = new Date().toISOString().split('T')[0]; 
+                        calcularTotais(); 
+                        fetchNextOrderNumber(); 
+                    } else {
+                        showModal('Erro!', `Falha ao registrar: ${result.message || 'Verifique o console para mais detalhes.'}`, false);
+                        console.error('Erro ao registrar:', result.message);
+                    }
+                } catch (error) {
+                    showModal('Erro de Conexão!', `Não foi possível conectar ao servidor. Tente novamente. Detalhes: ${error.message}`, false);
+                    console.error('Erro ao enviar dados:', error);
+                } finally {
+                    hideLoading();
+                }
+            });
+        });
+    </script>
+ 
+</body>
+</html>
